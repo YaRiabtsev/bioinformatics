@@ -30,10 +30,11 @@
 #include <stdexcept>
 #include <utility>
 
-alignment::alignment(std::string seq_a, std::string seq_b, const int d) : d(d), seq1(std::move(seq_a)),
-                                                                          seq2(std::move(seq_b)),
-                                                                          n(seq1.size()),
-                                                                          m(seq2.size()) {
+alignment::alignment(std::string seq_a, std::string seq_b, const score_matrix sm, const int d) : d(d), sm(sm),
+    seq1(std::move(seq_a)),
+    seq2(std::move(seq_b)),
+    n(seq1.size()),
+    m(seq2.size()) {
 }
 
 void alignment::needleman_wunsch() {
@@ -80,6 +81,7 @@ void alignment::print_needleman_wunsch() {
     if (needleman_wunsch_matrix.empty()) {
         needleman_wunsch();
     }
+    std::cout << "Needleman-Wunsch matrix:" << std::endl;
     print(needleman_wunsch_matrix);
 }
 
@@ -124,6 +126,7 @@ void alignment::print_smith_waterman() {
     if (smith_waterman_matrix.empty()) {
         smith_waterman();
     }
+    std::cout << "Smith-Waterman matrix:" << std::endl;
     print(smith_waterman_matrix);
 }
 
@@ -134,22 +137,21 @@ void alignment::repeated_local_alignment(const int threshold) {
         repeated_local_alignment_matrix.resize(m + 1, std::vector(n + 1, 0));
     }
     std::vector sources(m + 1, std::vector(n + 1, static_cast<int>(align_sources::threshold_align)));
-    for (int i = 1; i <= m; ++i) {
-        sources[i][0] = static_cast<int>(align_sources::threshold_align);
-        repeated_local_alignment_matrix[i][0] = std::max(repeated_local_alignment_matrix[i - 1][0],
-                                                         *std::ranges::max_element(
-                                                             repeated_local_alignment_matrix[i - 1]
-                                                         ) - threshold);
-
-        for (int j = 1; j <= n; ++j) {
-            repeated_local_alignment_matrix[i][j] = repeated_local_alignment_matrix[i][0];
+    int prev_max = 0;
+    for (int j = 1; j <= n; ++j) {
+        sources[0][j] = static_cast<int>(align_sources::threshold_align);
+        repeated_local_alignment_matrix[0][j] = std::max(repeated_local_alignment_matrix[0][j-1],
+                                                         prev_max - threshold);
+        prev_max = 0;
+        for (int i = 1; i <= m; ++i) {
+            repeated_local_alignment_matrix[i][j] = repeated_local_alignment_matrix[0][j];
 
             if (const int _delete = repeated_local_alignment_matrix[i - 1][j] - d;
                 _delete > repeated_local_alignment_matrix[i][j]) {
                 repeated_local_alignment_matrix[i][j] = _delete;
                 sources[i][j] = static_cast<int>(align_sources::delete_align);
             } else {
-                repeated_local_alignment_matrix[i][j] = 0;
+                sources[i][j] |= static_cast<int>(align_sources::delete_align);
             }
 
             if (const int _insert = repeated_local_alignment_matrix[i][j - 1] - d;
@@ -157,7 +159,7 @@ void alignment::repeated_local_alignment(const int threshold) {
                 repeated_local_alignment_matrix[i][j] = _insert;
                 sources[i][j] = static_cast<int>(align_sources::insert_align);
             } else {
-                repeated_local_alignment_matrix[i][j] = 0;
+                sources[i][j] |= static_cast<int>(align_sources::insert_align);
             }
 
             if (const int _match = repeated_local_alignment_matrix[i - 1][j - 1] + similarity(
@@ -166,8 +168,10 @@ void alignment::repeated_local_alignment(const int threshold) {
                 repeated_local_alignment_matrix[i][j] = _match;
                 sources[i][j] = static_cast<int>(align_sources::match_align);
             } else {
-                repeated_local_alignment_matrix[i][j] = 0;
+                sources[i][j] |= static_cast<int>(align_sources::match_align);
             }
+
+            prev_max = std::max(prev_max, repeated_local_alignment_matrix[i][j]);
         }
     }
 
@@ -178,6 +182,7 @@ void alignment::print_repeated_local_alignment(const int threshold) {
     if (repeated_local_alignment_matrix.empty()) {
         repeated_local_alignment(threshold);
     }
+    std::cout << "Repeated local alignment matrix:" << std::endl;
     print(repeated_local_alignment_matrix);
 }
 
@@ -209,6 +214,7 @@ void alignment::print_wagner_fischer() {
     if (wagner_fischer_matrix.empty()) {
         wagner_fischer();
     }
+    std::cout << "Wagner-Fischer matrix:" << std::endl;
     print(wagner_fischer_matrix);
 }
 
@@ -238,6 +244,14 @@ void alignment::print(const std::vector<std::vector<int> > &dp) {
 }
 
 int alignment::similarity(const char a, const char b) {
-    //todo: use BLOSUM* matrix
-    return a - b;
+    int idx_a = 24, idx_b = 24;
+    for (int i = 0; i < 24; i++) {
+        if (Acids[i] == static_cast<char>(std::toupper(a))) {
+            idx_a = i;
+        }
+        if (Acids[i] == static_cast<char>(std::toupper(b))) {
+            idx_b = i;
+        }
+    }
+    return ScoreMatrix[static_cast<int>(sm)][idx_a * 25 + idx_b];
 }

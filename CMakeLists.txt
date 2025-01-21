@@ -13,6 +13,7 @@ target_include_directories(bioinformatics_lib PUBLIC include)
 target_precompile_headers(bioinformatics_lib PRIVATE
         include/findstr.hpp
         include/alignstr.hpp
+        include/tables.hpp
 )
 
 set_target_properties(bioinformatics_lib PROPERTIES UNITY_BUILD ON)

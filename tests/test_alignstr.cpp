@@ -32,3 +32,14 @@ TEST(AlignmentStringTest, BaseTest) {
     align = alignment("Saturday", "Sunday");
     EXPECT_EQ(align.wagner_fischer(), 3);
 }
+
+// TEST(AlignmentStringPrintTest, PrintTest) {
+//     alignment align("HEAGAWGHEE", "PAWHEAE", score_matrix::blosum50, 8);
+//     align.print_needleman_wunsch();
+//     std::cout << std::endl;
+//     align.print_smith_waterman();
+//     std::cout << std::endl;
+//     align.print_repeated_local_alignment();
+//     std::cout << std::endl;
+//     align.print_wagner_fischer();
+// }

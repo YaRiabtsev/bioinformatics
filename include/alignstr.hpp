@@ -24,10 +24,11 @@
 
 #ifndef ALIGNSTR_HPP
 #define ALIGNSTR_HPP
+#include "tables.hpp"
 
 class alignment {
 public:
-    explicit alignment(std::string seq_a, std::string seq_b, int d = 6);
+    explicit alignment(std::string seq_a, std::string seq_b, score_matrix sm = score_matrix::blosum50, int d = 6);
 
     void needleman_wunsch();
 
@@ -47,6 +48,7 @@ public:
 
 private:
     int d; /// gap penalty score
+    score_matrix sm;
     std::string seq1, seq2;
     size_t n, m;
     std::vector<std::vector<int> > needleman_wunsch_matrix;
@@ -60,7 +62,7 @@ private:
         null_align = 0, match_align = 1, delete_align = 2, insert_align = 4, threshold_align = 8
     };
 
-    static int similarity(char a, char b);
+    int similarity(char a, char b);
 };
 
 #endif //ALIGNSTR_HPP
