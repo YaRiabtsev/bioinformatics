@@ -33,13 +33,31 @@ TEST(AlignmentStringTest, BaseTest) {
     EXPECT_EQ(align.wagner_fischer(), 3);
 }
 
-// TEST(AlignmentStringPrintTest, PrintTest) {
-//     alignment align("HEAGAWGHEE", "PAWHEAE", score_matrix::blosum50, 8);
-//     align.print_needleman_wunsch();
-//     std::cout << std::endl;
-//     align.print_smith_waterman();
-//     std::cout << std::endl;
-//     align.print_repeated_local_alignment();
-//     std::cout << std::endl;
-//     align.print_wagner_fischer();
-// }
+TEST(AlignmentStringPrintTest, PrintTest) {
+    alignment align("HEAGAWGHEE", "PAWHEAE", score_matrix::blosum50, 8);
+
+    std::vector<std::pair<std::string, std::string> > best_align_pairs;
+    align.needleman_wunsch(best_align_pairs);
+    const std::vector<std::pair<std::string, std::string> > best_align_pairs_expected = {
+        {"HEAGAWGHE-E", "--P-AW-HEAE"},
+        {"HEAGAWGHE-E", "-P--AW-HEAE"},
+        {"HEAGAWGHE-E", "-PA--W-HEAE"}
+    };
+    EXPECT_EQ(best_align_pairs, best_align_pairs_expected);
+
+    std::vector<std::vector<std::pair<std::string, std::string> > > best_local_align_pairs;
+    EXPECT_EQ(align.smith_waterman(best_local_align_pairs), 28);
+    const std::vector<std::vector<std::pair<std::string, std::string> > > best_local_align_pairs_expected = {
+        {
+            {"AWGHE", "AW-HE"}
+        }
+    };
+    EXPECT_EQ(best_local_align_pairs, best_local_align_pairs_expected);
+
+    std::vector<std::pair<std::string, std::string> > best_rlocal_align_pairs;
+    align.repeated_local_alignment(best_rlocal_align_pairs);
+    const std::vector<std::pair<std::string, std::string> > best_rlocal_align_pairs_expected = {
+        {"HEAGAWGHEE", "HEA_AW-HE_"}
+    };
+    EXPECT_EQ(best_rlocal_align_pairs, best_rlocal_align_pairs_expected);
+}

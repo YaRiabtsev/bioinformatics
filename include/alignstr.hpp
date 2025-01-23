@@ -30,17 +30,19 @@ class alignment {
 public:
     explicit alignment(std::string seq_a, std::string seq_b, score_matrix sm = score_matrix::blosum50, int d = 6);
 
-    void needleman_wunsch();
+
+    void needleman_wunsch(std::vector<std::pair<std::string, std::string> > &best_align_pairs);
 
     void print_needleman_wunsch();
 
-    void smith_waterman();
+    int smith_waterman(std::vector<std::vector<std::pair<std::string, std::string> > > &best_align_pairs);
 
     void print_smith_waterman();
 
-    void repeated_local_alignment(int threshold = 20);
+    void repeated_local_alignment(std::vector<std::pair<std::string, std::string> > &best_align_pairs,
+                                  int threshold = 20);
 
-    void print_repeated_local_alignment(int threshold = 20);
+    void print_repeated_local_alignment();
 
     int wagner_fischer();
 
@@ -56,13 +58,17 @@ private:
     std::vector<std::vector<int> > repeated_local_alignment_matrix;
     std::vector<std::vector<int> > wagner_fischer_matrix;
 
-    void print(const std::vector<std::vector<int> > &dp);
 
     enum class align_sources : int {
         null_align = 0, match_align = 1, delete_align = 2, insert_align = 4, threshold_align = 8
     };
 
+    void print(const std::vector<std::vector<int> > &dp);
+
     int similarity(char a, char b);
+
+    void backtrace(const std::vector<std::vector<int> > &sources, size_t i, size_t j,
+                   std::vector<std::pair<std::string, std::string> > &pairs);
 };
 
 #endif //ALIGNSTR_HPP

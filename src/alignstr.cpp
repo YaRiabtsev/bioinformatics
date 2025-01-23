@@ -37,7 +37,7 @@ alignment::alignment(std::string seq_a, std::string seq_b, const score_matrix sm
     m(seq2.size()) {
 }
 
-void alignment::needleman_wunsch() {
+void alignment::needleman_wunsch(std::vector<std::pair<std::string, std::string> > &best_align_pairs) {
     if (!needleman_wunsch_matrix.empty()) {
         throw std::runtime_error("Needleman-Wunsch matrix is already computed");
     }
@@ -72,23 +72,22 @@ void alignment::needleman_wunsch() {
             }
         }
     }
-
-    // todo: backtrace
-    // tip: needleman_wunsch() -> needleman_wunsch(std::vector<std::pair<std::string, std::string>>& best_align_pairs)
+    backtrace(sources, m, n, best_align_pairs);
 }
 
 void alignment::print_needleman_wunsch() {
     if (needleman_wunsch_matrix.empty()) {
-        needleman_wunsch();
+        throw std::runtime_error("Needleman-Wunsch matrix is not computed");
     }
     std::cout << "Needleman-Wunsch matrix:" << std::endl;
     print(needleman_wunsch_matrix);
 }
 
-void alignment::smith_waterman() {
+int alignment::smith_waterman(std::vector<std::vector<std::pair<std::string, std::string> > > &best_align_pairs) {
     if (!smith_waterman_matrix.empty()) {
         throw std::runtime_error("Smith-Waterman matrix is already computed");
     }
+    int max_score = 0;
     smith_waterman_matrix.resize(m + 1, std::vector(n + 1, 0));
     std::vector sources(m + 1, std::vector(n + 1, 0));
     for (int i = 1; i <= m; ++i) {
@@ -116,31 +115,43 @@ void alignment::smith_waterman() {
             } else if (_match == smith_waterman_matrix[i][j]) {
                 sources[i][j] |= static_cast<int>(align_sources::match_align);
             }
+
+            max_score = std::max(max_score, smith_waterman_matrix[i][j]);
         }
     }
-
-    // todo: backtrace
+    for (int i = 1; i <= m; ++i) {
+        for (int j = 1; j <= n; ++j) {
+            if (smith_waterman_matrix[i][j] == max_score) {
+                std::vector<std::pair<std::string, std::string> > pairs;
+                backtrace(sources, i, j, pairs);
+                best_align_pairs.push_back(pairs);
+            }
+        }
+    }
+    return max_score;
 }
 
 void alignment::print_smith_waterman() {
     if (smith_waterman_matrix.empty()) {
-        smith_waterman();
+        throw std::runtime_error("Smith-Waterman matrix is not computed");
     }
     std::cout << "Smith-Waterman matrix:" << std::endl;
     print(smith_waterman_matrix);
 }
 
-void alignment::repeated_local_alignment(const int threshold) {
+void alignment::repeated_local_alignment(std::vector<std::pair<std::string, std::string> > &best_align_pairs,
+                                         const int threshold) {
     if (!repeated_local_alignment_matrix.empty()) {
         repeated_local_alignment_matrix.clear();
     } else {
         repeated_local_alignment_matrix.resize(m + 1, std::vector(n + 1, 0));
     }
     std::vector sources(m + 1, std::vector(n + 1, static_cast<int>(align_sources::threshold_align)));
+    sources[0][0] = static_cast<int>(align_sources::null_align);
     int prev_max = 0;
     for (int j = 1; j <= n; ++j) {
         sources[0][j] = static_cast<int>(align_sources::threshold_align);
-        repeated_local_alignment_matrix[0][j] = std::max(repeated_local_alignment_matrix[0][j-1],
+        repeated_local_alignment_matrix[0][j] = std::max(repeated_local_alignment_matrix[0][j - 1],
                                                          prev_max - threshold);
         prev_max = 0;
         for (int i = 1; i <= m; ++i) {
@@ -150,7 +161,7 @@ void alignment::repeated_local_alignment(const int threshold) {
                 _delete > repeated_local_alignment_matrix[i][j]) {
                 repeated_local_alignment_matrix[i][j] = _delete;
                 sources[i][j] = static_cast<int>(align_sources::delete_align);
-            } else {
+            } else if (_delete == repeated_local_alignment_matrix[i][j]) {
                 sources[i][j] |= static_cast<int>(align_sources::delete_align);
             }
 
@@ -158,7 +169,7 @@ void alignment::repeated_local_alignment(const int threshold) {
                 _insert > repeated_local_alignment_matrix[i][j]) {
                 repeated_local_alignment_matrix[i][j] = _insert;
                 sources[i][j] = static_cast<int>(align_sources::insert_align);
-            } else {
+            } else if (_insert == repeated_local_alignment_matrix[i][j]) {
                 sources[i][j] |= static_cast<int>(align_sources::insert_align);
             }
 
@@ -167,7 +178,7 @@ void alignment::repeated_local_alignment(const int threshold) {
                 _match > repeated_local_alignment_matrix[i][j]) {
                 repeated_local_alignment_matrix[i][j] = _match;
                 sources[i][j] = static_cast<int>(align_sources::match_align);
-            } else {
+            } else if (_match == repeated_local_alignment_matrix[i][j]) {
                 sources[i][j] |= static_cast<int>(align_sources::match_align);
             }
 
@@ -175,12 +186,12 @@ void alignment::repeated_local_alignment(const int threshold) {
         }
     }
 
-    // todo: backtrace
+    backtrace(sources, 0, n, best_align_pairs);
 }
 
-void alignment::print_repeated_local_alignment(const int threshold) {
+void alignment::print_repeated_local_alignment() {
     if (repeated_local_alignment_matrix.empty()) {
-        repeated_local_alignment(threshold);
+        throw std::runtime_error("Repeated local alignment matrix is not computed");
     }
     std::cout << "Repeated local alignment matrix:" << std::endl;
     print(repeated_local_alignment_matrix);
@@ -254,4 +265,61 @@ int alignment::similarity(const char a, const char b) {
         }
     }
     return ScoreMatrix[static_cast<int>(sm)][idx_a * 25 + idx_b];
+}
+
+void alignment::backtrace(const std::vector<std::vector<int> > &sources, const size_t i, const size_t j,
+                          std::vector<std::pair<std::string, std::string> > &pairs) {
+    if (!sources[i][j]) {
+        pairs.emplace_back("", "");
+        return;
+    }
+    if (i && j && sources[i][j] & static_cast<int>(align_sources::match_align)) {
+        std::vector<std::pair<std::string, std::string> > prefix;
+        backtrace(sources, i - 1, j - 1, prefix);
+        for (auto &[fst, snd]: prefix) {
+            fst += seq1[j - 1];
+            snd += seq2[i - 1];
+        }
+        pairs.insert(pairs.end(), prefix.begin(), prefix.end());
+    }
+    if (i && sources[i][j] & static_cast<int>(align_sources::delete_align)) {
+        std::vector<std::pair<std::string, std::string> > prefix;
+        backtrace(sources, i - 1, j, prefix);
+        for (auto &[fst, snd]: prefix) {
+            fst += '-';
+            snd += seq2[i - 1];
+        }
+        pairs.insert(pairs.end(), prefix.begin(), prefix.end());
+    }
+    if (j && sources[i][j] & static_cast<int>(align_sources::insert_align)) {
+        std::vector<std::pair<std::string, std::string> > prefix;
+        backtrace(sources, i, j - 1, prefix);
+        for (auto &[fst, snd]: prefix) {
+            fst += seq1[j - 1];
+            snd += '-';
+        }
+        pairs.insert(pairs.end(), prefix.begin(), prefix.end());
+    }
+    if (!repeated_local_alignment_matrix.empty() && sources[i][j] & static_cast<int>(
+            align_sources::threshold_align)) {
+        if (j) {
+            int prev_max = 0;
+            for (int idx = 0; idx <= m; idx++) {
+                prev_max = std::max(prev_max, repeated_local_alignment_matrix[idx][j - 1]);
+            }
+            for (int idx = 0; idx <= m; idx++) {
+                if (repeated_local_alignment_matrix[idx][j - 1] == prev_max) {
+                    std::vector<std::pair<std::string, std::string> > prefix;
+                    backtrace(sources, idx, j - 1, prefix);
+                    for (auto &[fst, snd]: prefix) {
+                        fst += seq1[j - 1];
+                        snd += '_';
+                    }
+                    pairs.insert(pairs.end(), prefix.begin(), prefix.end());
+                }
+            }
+        } else {
+            pairs.emplace_back("", "");
+        }
+    }
 }

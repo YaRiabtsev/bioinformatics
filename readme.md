@@ -46,12 +46,11 @@ Load Average: 0.63, 1.07, 0.99
 * Smith Waterman Algorithm
 * Repeated Local Alignment
 * Wagner Fischer Algorithm
-*
 
 <details>
   <summary>Scores Example</summary>
 
-## Needleman-Wunsch Matrix
+### Needleman-Wunsch Matrix
 
 |   |     |   H |   E |   A |   G |   A |   W |   G |   H |   E |   E |
 |---|----:|----:|----:|----:|----:|----:|----:|----:|----:|----:|----:|
@@ -64,7 +63,14 @@ Load Average: 0.63, 1.07, 0.99
 | A | -48 | -30 | -16 |  -3 | -11 | -11 | -12 | -12 | -15 |  -5 |   2 |
 | E | -56 | -38 | -24 | -11 |  -6 | -12 | -14 | -15 | -12 |  -9 |   1 |
 
-## Smith-Waterman Matrix
+#### Backtrack:
+
+| *alignment #1* | | *alignment #2* | | *alignment #3* |
+|----------------|-|----------------|-|----------------|
+| `HEAGAWGHE-E`  | | `HEAGAWGHE-E`  | | `HEAGAWGHE-E`  |
+| `--P-AW-HEAE`  | | `-P--AW-HEAE`  | | `-PA--W-HEAE`  |
+
+### Smith-Waterman Matrix
 
 |   |   |  H |  E |  A |  G |  A |  W |  G |  H |  E |  E |
 |---|--:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -77,7 +83,14 @@ Load Average: 0.63, 1.07, 0.99
 | A |   |    |  8 | 21 | 13 |  5 |    |  4 | 10 | 20 | 27 |
 | E |   |    |  6 | 13 | 18 | 12 |  4 |    |  4 | 16 | 26 |
 
-## Repeated Local Alignment Matrix
+#### Backtrack:
+
+| *alignment #1* |
+|----------------|
+| `AWGHE`        |
+| `AW-HE`        |
+
+### Repeated Local Alignment Matrix
 
 |   |   |  H |  E |  A |  G |  A |  W |  G |  H |  E |  E |
 |---|--:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -90,7 +103,14 @@ Load Average: 0.63, 1.07, 0.99
 | A |   |    |  8 | 21 | 13 |  6 |  1 |  5 | 11 | 21 | 28 |
 | E |   |    |  6 | 13 | 18 | 12 |  4 |  1 |  5 | 17 | 27 |
 
-## Wagner-Fischer Matrix
+#### Backtrack:
+
+| *alignment #1* |
+|----------------|
+| `HEAGAWGHEE`   |
+| `HEA_AW-HE_`   |
+
+### Wagner-Fischer Matrix
 
 |   |   | H | E | A | G | A | W | G | H | E |  E |
 |---|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|---:|
